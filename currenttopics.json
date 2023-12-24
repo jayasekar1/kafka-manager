@@ -1,0 +1,52 @@
+[
+    {
+        "topic_a": {
+            "topic_name": "topic_a",
+            "partitions_count": "4",
+            "replication_factor": "1",
+            "configs": [
+                {
+                    "name": "cleanup.policy",
+                    "value": "compact"
+                },
+                {
+                    "name": "compression.type",
+                    "value": "gzip"
+                },
+                {
+                    "name": "retention.ms",
+                    "value": 72000000
+                },
+                {
+                    "name": "max.message.bytes",
+                    "value": 1048588
+                }
+            ]
+        }
+    },
+    {
+        "topic_b": {
+            "topic_name": "topic_b",
+            "partitions_count": "5",
+            "replication_factor": "1",
+            "configs": [
+                {
+                    "name": "cleanup.policy",
+                    "value": "compact"
+                },
+                {
+                    "name": "compression.type",
+                    "value": "snappy"
+                },
+                {
+                    "name": "retention.ms",
+                    "value": 86400000
+                },
+                {
+                    "name": "max.message.bytes",
+                    "value": 1048588
+                }
+            ]
+        }
+    }
+]
