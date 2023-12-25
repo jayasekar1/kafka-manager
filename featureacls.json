@@ -1,0 +1,46 @@
+[
+    {
+        "User:clientrestproxy-topic_b-WRITE": {
+            "resource_type": "TOPIC",
+            "resource_name": "topic_b",
+            "pattern_type": "LITERAL",
+            "principal": "User:clientrestproxy",
+            "host": "*",
+            "operation": "WRITE",
+            "permission": "ALLOW"
+        }
+    },
+    {
+        "User:clientrestproxy-topic_b-DESCRIBE": {
+            "resource_type": "TOPIC",
+            "resource_name": "topic_b",
+            "pattern_type": "LITERAL",
+            "principal": "User:clientrestproxy",
+            "host": "*",
+            "operation": "DESCRIBE",
+            "permission": "ALLOW"
+        }
+    },
+    {
+        "User:clientrestproxy-topic_b-CREATE": {
+            "resource_type": "TOPIC",
+            "resource_name": "topic_b",
+            "pattern_type": "LITERAL",
+            "principal": "User:clientrestproxy",
+            "host": "*",
+            "operation": "CREATE",
+            "permission": "ALLOW"
+        }
+    },
+    {
+        "User:clientrestproxy-topic_b-READ": {
+            "resource_type": "TOPIC",
+            "resource_name": "topic_b",
+            "pattern_type": "LITERAL",
+            "principal": "User:clientrestproxy",
+            "host": "*",
+            "operation": "READ",
+            "permission": "ALLOW"
+        }
+    }  
+]
