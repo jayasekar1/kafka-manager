@@ -1,0 +1,77 @@
+Add a topic :
+requests.post(rest_topic_url, auth=(REST_BASIC_AUTH_USER, REST_BASIC_AUTH_PASS), data=topic_json, headers=HEADERS)	
+url - https://cvlappxd33566.silver.com:8082/v3/clusters/F0IkjRYJSI6-OFL4gH6IMw/topics	
+data - 
+{
+            "topic_name": "topic_b",
+            "partitions_count": "4",
+            "replication_factor": "1",
+            "configs": [
+                {
+                    "name": "cleanup.policy",
+                    "value": "delete"
+                },
+                {
+                    "name": "compression.type",
+                    "value": "zstd"
+                },
+                {
+                    "name": "retention.ms",
+                    "value": 86400000
+                },
+                {
+                    "name": "max.message.bytes",
+                    "value": 1048588
+                }
+            ]
+        }
+		
+Delete a topic : 
+requests.delete(rest_topic_url + topic_name, auth=(REST_BASIC_AUTH_USER, REST_BASIC_AUTH_PASS))
+url - https://cvlappxd33566.silver.com:8082/v3/clusters/F0IkjRYJSI6-OFL4gH6IMw/topics/topic_a/	
+
+update partitions_count:
+requests.patch(f"{rest_topic_url}{topic_name}",
+                                                auth=(REST_BASIC_AUTH_USER, REST_BASIC_AUTH_PASS),
+                                                data="{\"partitions_count\":" + str(new_partition_count) + "}")	
+												
+url - https://cvlappxd33566.silver.com:8082/v3/clusters/F0IkjRYJSI6-OFL4gH6IMw/topics/topic_a												
+
+data - 												
+{
+    "partitions_count": "5"
+}
+
+update configs:
+url - requests.post(f"{rest_topic_url}{topic_name}" + "/configs:alter",
+                                 auth=(REST_BASIC_AUTH_USER, REST_BASIC_AUTH_PASS), data=updated_Configs, headers=HEADERS)
+
+https://cvlappxd33566.silver.com:8082/v3/clusters/F0IkjRYJSI6-OFL4gH6IMw/topics/topic_a/configs:alter
+
+data - 
+								 
+{
+    "data": [
+        {
+            "name": "cleanup.policy",
+            "operation": "delete"
+        },
+        {
+            "name": "compression.type",
+            "value": "gzip"
+        }
+    ]
+}		
+
+
+
+Add acl -
+requests.post(rest_acl_url, auth=(REST_BASIC_AUTH_USER, REST_BASIC_AUTH_PASS), data=acl_json, headers=HEADERS)
+url - https://cvlappxd33566.silver.com:8082/v3/clusters/F0IkjRYJSI6-OFL4gH6IMw/acls
+data - {"resource_type": "TOPIC", "resource_name": "topic_d", "pattern_type": "LITERAL", "principal": "User:SVTTCKAF", "host": "*", "operation": "WRITE", "permission": "ALLOW"}
+						 
+Delete acl - 
+requests.delete(rest_acl_url, auth=(REST_BASIC_AUTH_USER, REST_BASIC_AUTH_PASS), params=acl, verify='trustore.pem')
+url - 	https://cvlappxd33566.silver.com:8082/v3/clusters/F0IkjRYJSI6-OFL4gH6IMw/acls
+params -
+{'resource_type': 'TOPIC', 'resource_name': 'topic_d', 'pattern_type': 'LITERAL', 'principal': 'User:SVTTCKAF', 'host': '*', 'operation': 'WRITE', 'permission': 'ALLOW'}
