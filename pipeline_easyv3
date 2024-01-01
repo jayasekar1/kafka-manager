@@ -1,0 +1,182 @@
+from github import Github
+from deepdiff import DeepDiff
+from datetime import datetime
+from subprocess import PIPE
+
+import click
+import json
+import logging
+import os
+import string
+import subprocess
+import re
+import requests
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+featuretopics_file_path = 'C:\\Users\\venka\\Desktop\\KafkaAutomation\\revised\\featuretopics.json'
+sourcetopics_file_path = 'C:\\Users\\venka\\Desktop\\KafkaAutomation\\revised\\sourcetopics.json'
+featureacls_file_path ='C:\\Users\\venka\\Desktop\\KafkaAutomation\\revised\\featureacls.json'
+sourceacls_file_path ='C:\\Users\\venka\\Desktop\\KafkaAutomation\\revised\\sourceacls.json'
+connector_file_path ='C:\\Users\\venka\\Desktop\\KafkaAutomation\\revised\\connector-src.json'
+topics_url= 'https://cvlappxd33566.silver.com:8082/v3/clusters/F0IkjRYJSI6-OFL4gH6IMw'
+acls_url = 'https://cvlappxd33566.silver.com:8082/v3/clusters/F0IkjRYJSI6-OFL4gH6IMw/acls'
+'''
+def executeurl(url):
+    get_response = requests.get(url)
+    if get_response.status_code != 200:
+        logger.info(f"Topic does not already exist. Please proceed with creating the topic")
+    else:
+        logger.error(f"Topic already exist. Will not create a the topic {topic_name}")
+        exit(1)
+
+'''
+
+
+
+def buildurl(resource, action, topic_name):
+    if resource == 'topics':
+        if action == 'add_topic':
+            url = f'{topics_url}/topics'
+
+        if action == 'delete_topic':
+            url = f'{topics_url}/topics/{topic_name}/'
+
+        if action == 'update_partition':
+            url = f'{topics_url}/topics/{topic_name}/'
+
+        if action == 'update_configs':
+            url = f'{topics_url}/topics/{topic_name}/configs:alter'
+
+    if resource == 'acls':
+        url = acls_url
+
+    return url
+
+def readfile(path):  #Open file read contents and return dictonary
+    try:
+        file = open(path)
+        contents = file.read()
+        contents_list = json.loads(contents)
+        temp_dict = {}
+        for index in contents_list:
+            temp_dict.update(index)
+        file.close()
+        return temp_dict
+    except KeyError as ke:
+        logger.error(ke)
+
+def compare_files(file1, file2,resource_type): # compare files and return the changes in the form of Action File
+    diff = DeepDiff(file1, file2, ignore_order=True)
+    print("\n-----------------Source File--------------------\n :" + str(file1))
+    print("\n-----------------Destination File---------------\n  :" + str(file2))
+    print("\n-----Deep Diff of Source & Destination Files----\n"+str(diff))
+    list_of_actions = []
+    for change_key,change_value in diff.items():
+        if (change_key == 'dictionary_item_added'):
+            temp_list = re.findall(r"\['(.*?)'\]", str(change_value))
+            for item in temp_list:
+                listentry = resource_type + ';' + 'add_topic' + ';' + str(item)
+                list_of_actions.append(listentry)
+
+        if (change_key == 'dictionary_item_removed'):
+            temp_list = re.findall(r"\['(.*?)'\]", str(change_value))
+            for item in temp_list:
+                listentry = resource_type + ';' + 'delete_topic' + ';' + str(item)
+                list_of_actions.append(listentry)
+
+        if (change_key == 'values_changed'):
+            for key,value in change_value.items():
+                #print("Key : "+str(key[4:]))
+                temp = re.findall(r"\['(.*?)'\]", str(key))
+                if "partitions_count" in temp:
+                    listentry = resource_type + ';' + 'update_partition' + ';' + temp[0] + ';' + temp[1]
+                    list_of_actions.append(listentry)
+                if "configs" in temp:
+                    count = re.findall(r"\d",key)
+                    property_index = int(count[0])
+                    if property_index == 0:
+                        listentry = resource_type + ';' + 'update_configs' + ';' + temp[0] + ';' + temp[1] + ';' + 'cleanup.policy'
+                        list_of_actions.append(listentry)
+                    if property_index == 1:
+                        listentry =  resource_type + ';' + 'update_configs' + ';' + temp[0] + ';' + temp[1] + ';' + 'compression.type'
+                        list_of_actions.append(listentry)
+                    if property_index == 2:
+                        listentry =  resource_type + ';' + 'update_configs' + ';' + temp[0] + ';' + temp[1] + ';' + "retention.ms"
+                        list_of_actions.append(listentry)
+                    if property_index == 3:
+                        listentry =  resource_type + ';' + 'update_configs' + ';' + temp[0] + ';' + temp[1] + ';' + "max.message.bytes"
+                        list_of_actions.append(listentry)
+
+    return(list_of_actions)
+
+def parse_dictonary(dictionary,actionfile_item):
+    actionfile_tasks = actionfile_item.split(';')
+    resource = actionfile_tasks[0]
+    action= actionfile_tasks[1]
+    topic_name = actionfile_tasks[2]
+
+    payload= {}
+    if len(actionfile_tasks) == 3:
+            if topic_name in dictionary.keys():
+                payload = dictionary.get(topic_name)
+            else:
+                payload ={'Name to be deleted':actionfile_tasks[2]}
+
+    if  len(actionfile_tasks) == 4:
+        if topic_name in dictionary.keys():
+                topic_dict = dictionary.get(topic_name)
+                for prop_name, prop_value in topic_dict.items():
+                    if prop_name == 'partitions_count':
+                        payload = {prop_name:prop_value}
+
+    if  len(actionfile_tasks) == 5:
+        config_prop_name = actionfile_tasks[4]
+        if topic_name in dictionary.keys():
+                topic_dict = dictionary.get(topic_name)
+                for prop_name, prop_value in topic_dict.items():
+                    if prop_name == 'configs':
+                        listofProperties = prop_value
+                        for index in listofProperties:
+                            if index.get('name') == config_prop_name:
+                                config_prop = index.get('name')
+                                config_prop_value = index.get('value')
+                                payload = {"Data":[{"name":config_prop,"value":config_prop_value}]}
+    topic_url = buildurl(resource, action, topic_name)
+    summary_dict={}
+    summary_dict.update({'resource':resource,'action': action, 'resource_name': topic_name, 'payload': payload, 'url': topic_url})
+    return (summary_dict)
+
+def main():
+    # Read Files
+    featuretopic_dict = readfile(featuretopics_file_path)
+    sourcetopic_dict = readfile(sourcetopics_file_path)
+    featureacl_dict = readfile(featureacls_file_path)
+    sourceacl_dict = readfile(sourceacls_file_path)
+    connector_dict = readfile(connector_file_path)
+
+    # Generate Topics Action File
+    print("\n**********************************************************************Topics**************************************************\n")
+    topics_action_file = compare_files(sourcetopic_dict,featuretopic_dict,'topics')
+    execute_topics_list = []
+    for index in topics_action_file:
+        topic_payload = parse_dictonary(featuretopic_dict, index)
+        execute_topics_list.append(topic_payload)
+    print("\n---------------TOPICS Action File------------------\n")
+    for i in execute_topics_list:
+        print(str(i))
+
+    # Generate ACL Action File
+    print("\n****************************************************************ACLs**********************************************************\n")
+    execute_acls_list = []
+    acls_action_file = compare_files(sourceacl_dict, featureacl_dict,'acls')
+    for index in acls_action_file:
+        acl_payload = parse_dictonary(featureacl_dict, index)
+        execute_acls_list.append(acl_payload)
+    print("\n---------------ACLs Action File------------------\n")
+    for i in execute_acls_list:
+        print(str(i))
+
+
+if __name__ == '__main__':
+    main()
